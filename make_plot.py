@@ -16,7 +16,10 @@ def plot_player_data(
     assert timeframe_group_by in [
         "week",
         "month",
+        "day",
     ], "timeframe_group_by must be 'week' or 'month'"
+
+    conversions = {"week": "W", "month": "M", "day": "D"}
 
     player_id = df["player_id"].unique()[0]
     player_name = player_id
@@ -44,11 +47,7 @@ def plot_player_data(
     ).dt.tz_localize(None)
     df = df.dropna(subset=["date"])
     print(df["date"].dtype)
-    if timeframe_group_by == "week":
-        df["group"] = df["date"].dt.to_period("W").dt.start_time
-
-    elif timeframe_group_by == "month":
-        df["group"] = df["date"].dt.to_period("M").dt.start_time
+    df["group"] = df["date"].dt.to_period(conversions[timeframe_group_by]).dt.start_time
 
     grouped = df.groupby(["group", "metric"])["value"].mean().reset_index()
     pivot_df = grouped.pivot(index="group", columns="metric", values="value")
