@@ -9,7 +9,9 @@ import Analysis_Utils
 import Statistics
 import make_plot
 
-from All_names_ESPT_members import all_ESPT_members_names as ESPT
+from All_names_ESPT_members import (
+    all_ESPT_members_names as ESPT,
+)  # if you have a list of people you care about
 
 
 def main():
@@ -55,7 +57,7 @@ def main():
         )
     if extract_player_plot:
 
-        this_player = "76561197982075637"
+        this_player = ""  # here you put the player steamid
 
         start_date = date(2024, 1, 1)
         end_date = date(2025, 3, 1)
@@ -78,13 +80,7 @@ def main():
             constant_multiplier=2.5,
         )
         print("done")
-        with open("ESPT_members_ALL_NAMES.json", "w", encoding="utf-8") as f:
-            json.dump(ESPT, f, indent=4)
 
 
 if __name__ == "__main__":
     main()
-
-# Apolo "76561198128101122"
-# Tamat "76561198006728045"
-# Spooky "76561197982075637"
