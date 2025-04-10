@@ -12,12 +12,19 @@ def plot_player_data(
     drop_zeroes=True,
     player_names: dict | None = None,
     constant_multiplier=int | None,
+    rolling_av: str = "yes",
 ) -> None:
     assert timeframe_group_by in [
         "week",
         "month",
         "day",
     ], "timeframe_group_by must be 'week' or 'month'"
+    if rolling_av:
+        assert rolling_av in [
+            "yes",
+            "no",
+            "both",
+        ], "rolling_av must be 'yes', 'no', or 'both'"
 
     conversions = {"week": "W", "month": "M", "day": "D"}
 
@@ -38,34 +45,53 @@ def plot_player_data(
         df = df[df["date"] >= pd.to_datetime(lim_start)]
     if lim_end is not None:
         df = df[df["date"] <= pd.to_datetime(lim_end)]
-    print(df["date"].head())
-    print(df["date"].dtype)
-    print(df["date"].isna().sum())
 
     df["date"] = pd.to_datetime(
         df["date"], format="%Y-%m-%dT%H-%M-%S", errors="coerce"
     ).dt.tz_localize(None)
     df = df.dropna(subset=["date"])
-    print(df["date"].dtype)
-    df["group"] = df["date"].dt.to_period(conversions[timeframe_group_by]).dt.start_time
 
+    df["group"] = df["date"].dt.to_period(conversions[timeframe_group_by]).dt.start_time
     grouped = df.groupby(["group", "metric"])["value"].mean().reset_index()
+
     pivot_df = grouped.pivot(index="group", columns="metric", values="value")
 
     # Plot
     plt.style.use("seaborn-darkgrid")
-    pivot_df.plot(figsize=(12, 6), marker="o")
+    fig, ax = plt.subplots(figsize=(12, 6), dpi=300)
+    if rolling_av == "no" or rolling_av == "both":
+        pivot_df.plot(ax=ax, linewidth=1)
+
+    if rolling_av == "yes" or rolling_av == "both":
+        # Apply rolling average
+        df["rolling_avg"] = (
+            df.groupby(["group", "metric"])["value"]
+            .rolling(window=3, center=True)
+            .mean()
+            .reset_index(level=[0, 1], drop=True)
+        )
+        rolling_df = pivot_df.rolling(window=3, center=True).mean()
+
+        rolling_df.plot(
+            ax=ax,
+            linestyle="--",
+            linewidth=1,
+            alpha=0.6,
+            label=[f"{col} (avg)" for col in rolling_df.columns],
+        )
+
     plt.title(f"Player: {player_name} - {timeframe_group_by.capitalize()}ly Metrics")
     plt.xlabel("Date")
     plt.ylabel("Value")
     plt.grid(True)
-    plt.legend(title="Metric")
+    # plt.legend(title="Metric")
     # Modify the legend labels by removing 'list ' from the metric names
     handles, labels = plt.gca().get_legend_handles_labels()
     labels = [label.replace("list ", "") for label in labels]
 
     # Set the modified labels in the legend
-    plt.legend(handles, labels)
+    plt.legend(handles, labels, title="Metric")
+
     plt.tight_layout()
     plt.show()
 
